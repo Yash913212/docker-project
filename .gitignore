@@ -1,0 +1,64 @@
+##################################
+# Assignment-Specific Rules
+# (DO NOT IGNORE these files)
+# student_private.pem MUST be committed
+##################################
+
+# DO NOT ignore these:
+!student_private.pem
+!student_public.pem
+!instructor_public.pem
+!cron/2fa-cron
+!docker-compose.yml
+!.gitattributes
+!Dockerfile
+!scripts/
+!main.py
+
+
+##################################
+# Sensitive runtime-only files
+##################################
+
+# Encrypted seed received from API
+encrypted_seed.txt
+
+# Decrypted seed stored inside container
+data/seed.txt
+
+
+##################################
+# Python Cache
+##################################
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+##################################
+# Virtual Environment Files
+##################################
+
+env/
+venv/
+ENV/
+VENV/
+
+
+##################################
+# Local Environment Variables
+##################################
+
+.env
+
+
+##################################
+# IDE / Editor Settings
+##################################
+
+.vscode/
+.idea/
+*.swp
+*~
