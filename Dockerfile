@@ -9,7 +9,6 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 
-
 ###########################################
 # Stage 2: Runtime
 ###########################################
@@ -33,6 +32,9 @@ ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code
 COPY . .
+
+# Copy the PEM key file into the container
+COPY config/student_public.pem /app/student_public.pem
 
 # Copy cron job file into /cron path
 RUN mkdir -p /cron && \

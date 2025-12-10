@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-
     container_name: totp-api
 
     ports:
@@ -15,14 +14,9 @@ services:
       TZ: "UTC"
 
     volumes:
-      # Named volumes
+      # Named volumes only
       - seed-data:/data
       - cron-output:/cron
-
-      # Read-only key files for development
-      - ./student_private.pem:/app/student_private.pem:ro
-      - ./student_public.pem:/app/student_public.pem:ro
-      - ./instructor_public.pem:/app/instructor_public.pem:ro
 
     restart: unless-stopped
 
