@@ -34,7 +34,7 @@ ENV PATH=/root/.local/bin:$PATH
 COPY . .
 
 # Copy the PEM key file into the container
-COPY config/student_public.pem /app/student_public.pem
+COPY student_public.pem /app/student_public.pem
 
 # Copy cron job file into /cron path
 RUN mkdir -p /cron && \
