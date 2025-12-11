@@ -49,4 +49,4 @@ VOLUME ["/data", "/cron"]
 
 EXPOSE 8080
 
-CMD service cron start && uvicorn main:app --host 0.0.0.0 --port 8080
+CMD ["sh", "-c", "service cron start && uvicorn main:app --host 0.0.0.0 --port 8080"]
