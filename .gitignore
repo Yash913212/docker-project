@@ -22,9 +22,7 @@
 
 # Encrypted seed received from API
 encrypted_seed.txt
-seed.txt
 # Decrypted seed stored inside container
-data/seed.txt
 
 
 ##################################
