@@ -1,14 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import base64, os, time, hmac, hashlib, struct
+import base64
+import os
+import time
+import pyotp
+import hashlib
 
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes, serialization
 
-
 app = FastAPI()
 
-SEED_PATH = "data/seed.txt"
+# Use absolute path for Docker volume
+SEED_PATH = "/data/seed.txt"
 
 
 # ========= MODELS =========
@@ -23,82 +27,83 @@ class VerifyRequest(BaseModel):
 # ========= HELPERS =========
 
 def load_private_key():
+    """Loads the student's private key from a PEM file."""
     with open("student_private.pem", "rb") as f:
         return serialization.load_pem_private_key(f.read(), password=None)
 
 
 def decrypt_seed_rsa(encrypted_seed_b64: str) -> str:
+    """Decrypts the RSA/OAEP encrypted seed."""
     private_key = load_private_key()
     encrypted_bytes = base64.b64decode(encrypted_seed_b64)
 
     decrypted = private_key.decrypt(
         encrypted_bytes,
         padding.OAEP(
-            mgf=padding.MGF1(hashes.SHA256()),
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None,
-        )
+        ),
     )
 
     seed_hex = decrypted.decode().strip()
 
+    # Validate that the decrypted seed is a 64-character hex string
     if len(seed_hex) != 64:
-        raise ValueError("Invalid seed length")
+        raise ValueError(f"Invalid seed length: {len(seed_hex)}")
+    int(seed_hex, 16)  # Will raise ValueError if not a valid hex
 
-    int(seed_hex, 16)
     return seed_hex
 
 
-def generate_totp(secret_hex: str):
-    secret = bytes.fromhex(secret_hex)
-    timestep = 30
-    counter = int(time.time()) // timestep
-
-    msg = struct.pack(">Q", counter)
-    hmac_digest = hmac.new(secret, msg, hashlib.sha1).digest()
-
-    offset = hmac_digest[-1] & 0x0F
-    code = (struct.unpack(">I", hmac_digest[offset:offset+4])[0] & 0x7fffffff) % 1_000_000
-
-    return str(code).zfill(6)
+def get_base32_seed(hex_seed: str) -> str:
+    """Converts the hex seed to base32 as required by TOTP standards."""
+    seed_bytes = bytes.fromhex(hex_seed)
+    return base64.b32encode(seed_bytes).decode("utf-8")
 
 
-def verify_totp(secret_hex: str, user_code: str):
-    secret = bytes.fromhex(secret_hex)
-    timestep = 30
-    current_counter = int(time.time()) // timestep
+def generate_totp(hex_seed: str) -> str:
+    """Generates a TOTP code using pyotp."""
+    base32_seed = get_base32_seed(hex_seed)
+    totp = pyotp.TOTP(base32_seed, digest=hashlib.sha1)
+    return totp.now()
 
-    for offset in [-1, 0, 1]:
-        counter = current_counter + offset
-        msg = struct.pack(">Q", counter)
 
-        hmac_digest = hmac.new(secret, msg, hashlib.sha1).digest()
-        off = hmac_digest[-1] & 0x0F
-        code = (struct.unpack(">I", hmac_digest[off:off+4])[0] & 0x7fffffff) % 1_000_000
+def verify_totp(hex_seed: str, user_code: str) -> bool:
+    """Verifies a TOTP code with a +/- 1 period tolerance."""
+    base32_seed = get_base32_seed(hex_seed)
+    totp = pyotp.TOTP(base32_seed, digest=hashlib.sha1)
+    return totp.verify(user_code, valid_window=1)
 
-        if str(code).zfill(6) == user_code:
-            return True
 
-    return False
-
+# ========= API ENDPOINTS =========
 
 @app.post("/decrypt-seed")
 def decrypt_seed(body: DecryptRequest):
+    """
+    Decrypts the seed, validates it, and stores it persistently.
+    """
     try:
         seed_hex = decrypt_seed_rsa(body.encrypted_seed)
 
-        os.makedirs("data", exist_ok=True)
+        # Ensure the /data directory exists
+        os.makedirs(os.path.dirname(SEED_PATH), exist_ok=True)
         with open(SEED_PATH, "w") as f:
             f.write(seed_hex)
 
         return {"status": "ok"}
 
-    except Exception:
+    except Exception as e:
+        # Log the error for debugging; in production, use a proper logger
+        print(f"Decryption failed: {e}")
         raise HTTPException(status_code=500, detail="Decryption failed")
 
 
 @app.get("/generate-2fa")
 def generate_2fa():
+    """
+    Generates a 2FA code from the stored seed.
+    """
     if not os.path.exists(SEED_PATH):
         raise HTTPException(status_code=500, detail="Seed not decrypted yet")
 
@@ -113,7 +118,10 @@ def generate_2fa():
 
 @app.post("/verify-2fa")
 def verify_2fa(body: VerifyRequest):
-    if body.code is None:
+    """
+    Verifies a 2FA code provided by the user.
+    """
+    if not body.code:
         raise HTTPException(status_code=400, detail="Missing code")
 
     if not os.path.exists(SEED_PATH):
@@ -122,5 +130,5 @@ def verify_2fa(body: VerifyRequest):
     with open(SEED_PATH, "r") as f:
         seed_hex = f.read().strip()
 
-    valid = verify_totp(seed_hex, body.code)
-    return {"valid": valid}
+    is_valid = verify_totp(seed_hex, body.code)
+    return {"valid": is_valid}

@@ -1,1 +1,2 @@
-* * * * * cd /app && /usr/local/bin/python3 Scripts/log_2fa_cron.py >> /cron/last_code.txt 2>&1
+# Execute every minute
+* * * * * /usr/local/bin/python3 /app/scripts/log_2fa_cron.py >> /cron/last_code.txt 2>&1

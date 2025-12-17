@@ -1,47 +1,55 @@
 #!/usr/bin/env python3
 
-import time
-import hmac
-import hashlib
-import struct
-from datetime import datetime, timezone
 import os
+import sys
+import base64
+import pyotp
+import hashlib
+from datetime import datetime, timezone
 
+# Add the app directory to the Python path to import main
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 SEED_PATH = "/data/seed.txt"
+LOG_PATH = "/cron/last_code.txt"
 
+def get_base32_seed(hex_seed: str) -> str:
+    """Converts the hex seed to base32."""
+    seed_bytes = bytes.fromhex(hex_seed)
+    return base64.b32encode(seed_bytes).decode("utf-8")
 
-def generate_totp(secret_hex: str, time_step=30, digits=6):
-    secret = bytes.fromhex(secret_hex)
-    counter = int(time.time()) // time_step
-
-    msg = struct.pack(">Q", counter)
-    hmac_digest = hmac.new(secret, msg, hashlib.sha1).digest()
-
-    offset = hmac_digest[-1] & 0x0F
-    code = (struct.unpack(">I", hmac_digest[offset:offset+4])[0] & 0x7fffffff) % (10 ** digits)
-
-    return str(code).zfill(digits)
-
+def generate_totp(hex_seed: str) -> str:
+    """Generates a TOTP code."""
+    base32_seed = get_base32_seed(hex_seed)
+    totp = pyotp.TOTP(base32_seed, digest=hashlib.sha1)
+    return totp.now()
 
 def main():
-    # 1. Read seed
+    """
+    Reads the seed, generates a TOTP code, and logs it with a UTC timestamp.
+    """
     if not os.path.exists(SEED_PATH):
-        print("Seed not found, cron cannot generate 2FA code.")
+        # Log to stderr so cron can capture it if configured
+        sys.stderr.write(f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} - Error: Seed file not found at {SEED_PATH}\n")
         return
 
-    with open(SEED_PATH, "r") as f:
-        seed_hex = f.read().strip()
+    try:
+        with open(SEED_PATH, "r") as f:
+            seed_hex = f.read().strip()
 
-    # 2. Generate TOTP
-    code = generate_totp(seed_hex)
+        if len(seed_hex) != 64:
+            sys.stderr.write(f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} - Error: Invalid seed format in {SEED_PATH}\n")
+            return
 
-    # 3. Current UTC time
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        code = generate_totp(seed_hex)
+        timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
-    # 4. Log
-    print(f"{timestamp} - 2FA Code: {code}")
+        # Append to the log file
+        with open(LOG_PATH, "a") as log_file:
+            log_file.write(f"{timestamp} - 2FA Code: {code}\n")
 
+    except Exception as e:
+        sys.stderr.write(f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} - An unexpected error occurred: {e}\n")
 
 if __name__ == "__main__":
     main()

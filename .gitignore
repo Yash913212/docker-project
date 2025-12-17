@@ -1,63 +1,49 @@
-##################################
-# Assignment-Specific Rules
-# (DO NOT IGNORE these files)
-# student_private.pem MUST be committed
-##################################
-
-# DO NOT ignore these:
-!student_private.pem
-!student_public.pem
-!instructor_public.pem
-!cron/2fa-cron
-!docker-compose.yml
-!.gitattributes
-!Dockerfile
-!scripts/
-!main.py
-
-
-##################################
-# Sensitive runtime-only files
-##################################
-
-# Encrypted seed received from API
-encrypted_seed.txt
-# Decrypted seed stored inside container
-
-
-##################################
-# Python Cache
-##################################
-
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-##################################
-# Virtual Environment Files
-##################################
-
+# Environments
+.env
+.venv
 env/
 venv/
 ENV/
-VENV/
+env.bak/
+venv.bak/
 
-
-##################################
-# Local Environment Variables
-##################################
-
-.env
-
-
-##################################
-# IDE / Editor Settings
-##################################
-
-.vscode/
+# IDEs and editors
 .idea/
-*.swp
-*~
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
+# Sensitive files
+encrypted_seed.txt
+seed.txt
+
+# Docker
+docker-compose.override.yml
