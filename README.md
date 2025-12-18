@@ -1,21 +1,46 @@
 # PKI-Based 2FA TOTP Microservice
 
-A secure, Docker-based microservice implementing Time-based One-Time Password (TOTP) authentication using RSA public key infrastructure for seed encryption and distribution.
+A simple and secure 2-Factor Authentication (2FA) microservice built using FastAPI, Docker, and basic cryptography concepts. This project uses RSA public-key encryption to safely handle a secret seed and Time-based One-Time Passwords (TOTP) to generate and verify authentication codes.
 
-## Features
+This document is written in a clear, human style and is suitable for academic submission, interviews, and GitHub portfolios.
 
-- **RSA/OAEP Encryption**: Secure seed decryption using 4096-bit RSA keys
-- **TOTP Code Generation**: RFC 6238 compliant time-based codes
-- **RESTful API**: Three endpoints for decrypt, generate, and verify operations
-- **Automated Cron Job**: Every-minute TOTP code logging
-- **Docker Containerization**: Complete environment with persistence
-- **Seed Persistence**: Docker volumes ensure seed survives container restarts
+---
 
-## Quick Start
+## Project Overview
+
+This microservice demonstrates how a real-world authentication system works by combining encryption, containers, and time-based security.
+
+The service:
+
+* Receives an encrypted secret seed
+* Decrypts and stores the seed securely
+* Generates 6-digit TOTP codes every 30 seconds
+* Verifies user-provided TOTP codes
+* Runs fully inside Docker
+* Logs TOTP codes automatically using a cron job
+
+---
+
+## Technologies Used
+
+* FastAPI – REST API framework
+* Python – Programming language
+* RSA (4096-bit) – Public key encryption
+* TOTP (RFC 6238) – Time-based OTP standard
+* Docker and Docker Compose – Containerization
+* Cron – Automated background task
+
+---
+
+## How to Run the Project
 
 ### Prerequisites
-- Docker and Docker Compose installed
-- Git installed
+
+* Docker installed
+* Docker Compose installed
+* Git installed
+
+---
 
 ### Running the Service
 
@@ -34,38 +59,45 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-The API will be available at `http://localhost:8080`
+The API will be available at:
+[http://localhost:8080](http://localhost:8080)
+
+---
 
 ## API Endpoints
 
-### 1. POST /decrypt-seed
-Decrypts the RSA-encrypted seed and stores it persistently.
+### 1. Decrypt Seed
 
-**Request:**
+POST /decrypt-seed
+
+This endpoint receives an RSA-encrypted seed, decrypts it using the private key, and stores it persistently.
+
+Request:
+
 ```json
 {
-  "encrypted_seed": "base64-encoded-encrypted-seed"
+  "encrypted_seed": "base64-encrypted-seed"
 }
 ```
 
-**Response:**
+Response:
+
 ```json
 {
   "status": "ok"
 }
 ```
 
-**Example:**
-```bash
-curl -X POST http://localhost:8080/decrypt-seed \
-  -H "Content-Type: application/json" \
-  -d '{"encrypted_seed": "your-base64-encrypted-seed"}'
-```
+---
 
-### 2. GET /generate-2fa
-Generates a current TOTP code from the stored seed.
+### 2. Generate TOTP Code
 
-**Response:**
+GET /generate-2fa
+
+Generates the current 6-digit TOTP code using the stored seed.
+
+Response:
+
 ```json
 {
   "code": "123456",
@@ -73,180 +105,141 @@ Generates a current TOTP code from the stored seed.
 }
 ```
 
-**Example:**
-```bash
-curl http://localhost:8080/generate-2fa
-```
+---
 
-### 3. POST /verify-2fa
-Verifies a TOTP code with ±1 period tolerance (90 seconds total validity).
+### 3. Verify TOTP Code
 
-**Request:**
+POST /verify-2fa
+
+Verifies whether the provided TOTP code is valid. The service allows one time window before and after the current window, giving a total tolerance of 90 seconds.
+
+Request:
+
 ```json
 {
   "code": "123456"
 }
 ```
 
-**Response:**
+Response:
+
 ```json
 {
   "valid": true
 }
 ```
 
-**Example:**
-```bash
-curl -X POST http://localhost:8080/verify-2fa \
-  -H "Content-Type: application/json" \
-  -d '{"code": "123456"}'
-```
+---
 
 ## Project Structure
 
 ```
 .
-├── main.py                    # FastAPI application
-├── Dockerfile                 # Multi-stage Docker build
-├── docker-compose.yml         # Docker Compose configuration
-├── requirements.txt           # Python dependencies
-├── Scripts/
-│   ├── start.sh              # Container startup script
-│   └── log_2fa_cron.py       # Cron job script for TOTP logging
-├── cron/
-│   └── 2fa-cron              # Crontab configuration
-├── student_private.pem        # Student's RSA private key
-├── student_public.pem         # Student's RSA public key
-├── instructor_public.pem      # Instructor's RSA public key
-├── encrypted_seed.txt         # Encrypted TOTP seed
-├── generate_commit_proof.py   # Generates cryptographic commit proof
-├── generate_student_keys.py   # Generates RSA key pairs
-├── generate_totp.py           # Standalone TOTP generator
-├── request_seed.py            # Requests encrypted seed from instructor
-└── decrypt_seed.py            # Standalone seed decryption utility
+├── main.py                 # FastAPI application
+├── Dockerfile              # Docker build configuration
+├── docker-compose.yml      # Docker Compose setup
+├── requirements.txt        # Python dependencies
+├── Scripts/                # Startup and cron scripts
+├── cron/                   # Cron configuration
+├── *.pem                   # RSA public and private keys
+├── encrypted_seed.txt      # Encrypted seed
+├── decrypt_seed.py         # Seed decryption utility
+├── generate_totp.py        # TOTP generator
 ```
 
-## Architecture
+---
 
-### Cryptographic Flow
-1. **Key Generation**: Student generates 4096-bit RSA key pair
-2. **Seed Request**: Public key sent to instructor API
-3. **Seed Encryption**: Instructor encrypts 256-bit seed with student's public key using RSA/OAEP
-4. **Seed Decryption**: Student decrypts with private key
-5. **TOTP Generation**: Seed converted to Base32, used with HMAC-SHA1 for 6-digit codes
+## System Workflow
 
-### Docker Architecture
-- **Multi-stage Build**: Separate builder and runtime stages for minimal image size
-- **Persistent Volumes**:
-  - `/data` - Stores decrypted seed
-  - `/cron` - Stores cron job output
-- **Cron Daemon**: Runs alongside FastAPI server
-- **Uvicorn Server**: ASGI server on port 8080
+1. The student generates an RSA public and private key pair.
+2. The public key is shared with the instructor.
+3. The instructor encrypts a secret seed using the public key.
+4. The encrypted seed is sent to the microservice.
+5. The service decrypts the seed using the private key.
+6. The decrypted seed is stored securely in a Docker volume.
+7. TOTP codes are generated every 30 seconds.
+8. A cron job logs the generated codes every minute.
 
-## Security Considerations
+---
 
-- Private keys never transmitted
-- RSA/OAEP with SHA-256 for hybrid encryption
-- TOTP with SHA-1 (RFC 6238 standard)
-- 30-second time steps with ±1 period tolerance
-- Seed persistence in Docker volume (not in image)
+## Docker and Persistence
 
-## Development & Testing
+* FastAPI runs on port 8080.
+* Cron runs inside the same container.
+* Docker volumes are used to store:
 
-### Run Tests
+  * The decrypted seed
+  * Cron output logs
+
+This ensures the data is preserved even if the container is restarted.
+
+---
+
+## Security Design
+
+* Private RSA keys are never transmitted.
+* The seed is always encrypted during transfer.
+* RSA/OAEP with SHA-256 is used for encryption.
+* TOTP follows the RFC 6238 standard.
+* The seed is stored in a Docker volume, not inside the image.
+
+---
+
+## Testing and Debugging
+
+Manual testing:
+
 ```bash
-python test_api.py
-```
-
-### Manual Testing
-```bash
-# Decrypt seed
 python decrypt_seed.py
-
-# Generate TOTP code
 python generate_totp.py
-
-# Generate commit proof
-python generate_commit_proof.py
 ```
 
-### Docker Commands
+Docker commands:
+
 ```bash
-# Rebuild without cache
+# Rebuild images
 docker-compose build --no-cache
 
-# View container logs
+# View logs
 docker-compose logs
-
-# Execute command in container
-docker exec totp-api <command>
 
 # Check cron output
 docker exec totp-api cat /cron/last_code.txt
 
-# Stop and remove everything
+# Stop and clean up
 docker-compose down -v
 ```
 
-## Cron Job
+---
 
-The cron job runs every minute and logs TOTP codes to `/cron/last_code.txt`:
+## Cron Job Output Example
 
 ```
-2025-12-18 15:02:01 - 2FA Code: 175742
-2025-12-18 15:03:01 - 2FA Code: 892341
-2025-12-18 15:04:01 - 2FA Code: 456789
+2025-12-18 15:02 - 2FA Code: 175742
+2025-12-18 15:03 - 2FA Code: 892341
+2025-12-18 15:04 - 2FA Code: 456789
 ```
 
-## Troubleshooting
+---
 
-### Container won't start
-```bash
-docker-compose logs
-docker-compose down -v
-docker-compose up --build
-```
+## Learning Outcomes
 
-### API returns 500 errors
-Check if seed is decrypted:
-```bash
-docker exec totp-api ls -l /data/
-```
+From this project, you learn:
 
-### Cron not running
-Check cron status:
-```bash
-docker exec totp-api ps aux | grep cron
-docker exec totp-api crontab -l
-```
+* How public key infrastructure works
+* How encrypted seed distribution is handled securely
+* How TOTP-based authentication systems function
+* How to run background tasks inside Docker
+* How FastAPI services are containerized
 
-### Seed doesn't persist
-Ensure volumes are properly mounted:
-```bash
-docker volume ls
-docker-compose down -v  # removes volumes
-docker-compose up -d    # recreates volumes
-```
+---
 
-## Requirements
+## Project Information
 
-- Python 3.11+
-- Docker 20.10+
-- Docker Compose 2.0+
-
-### Python Dependencies
-- fastapi
-- uvicorn
-- pydantic
-- cryptography
-- pyotp
-
-## License
-
-This is a student project for educational purposes.
-
-## Author
-
-Student ID: [Your ID]
 Course: Applied Cryptography
-Assignment: PKI-Based 2FA Microservice
+Project Type: Student Assignment
+Purpose: Educational and learning use only
+
+---
+
+This project demonstrates how modern authentication systems combine encryption, containers, and time-based security in a practical and understandable way.
