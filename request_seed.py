@@ -12,7 +12,7 @@ def request_seed(student_id: str, github_repo_url: str):
     payload = {
         "student_id": student_id,
         "github_repo_url": github_repo_url,
-        "public_key": public_key_pem   # KEEP NEWLINES
+        "public_key": public_key_pem  # KEEP NEWLINES
     }
 
     # Step 3: Send POST request
