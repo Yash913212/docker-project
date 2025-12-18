@@ -32,7 +32,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application source code
 COPY main.py .
-COPY Scripts/ /app/scripts/
+COPY Scripts/ /app/Scripts/
 
 # Copy keys required for the application to run
 COPY student_private.pem .
