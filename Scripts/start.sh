@@ -1,8 +1,16 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 
-# Start the cron daemon in the background
-cron
+# Ensure directories exist
+mkdir -p /data /cron
+
+# Start cron daemon
+echo "Starting cron daemon..."
+service cron start
+
+# Wait a moment for cron to initialize
+sleep 2
 
 # Start the FastAPI application in the foreground
-# Use --host 0.0.0.0 to make it accessible from outside the container
-uvicorn main:app --host 0.0.0.0 --port 8080
+echo "Starting FastAPI application..."
+exec uvicorn main:app --host 0.0.0.0 --port 8080

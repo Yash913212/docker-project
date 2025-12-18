@@ -10,11 +10,19 @@ services:
 
     environment:
       TZ: "UTC"
+      PYTHONUNBUFFERED: "1"
 
     volumes:
       # Named volumes only
       - seed-data:/data
       - cron-output:/cron
+
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/docs').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
     restart: unless-stopped
 

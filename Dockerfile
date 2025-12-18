@@ -18,11 +18,12 @@ FROM python:3.11-slim
 
 # Set timezone to UTC
 ENV TZ=UTC
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# Install runtime dependencies (cron)
+# Install runtime dependencies (cron and process tools)
 RUN apt-get update && \
-    apt-get install -y cron tzdata && \
+    apt-get install -y cron tzdata procps && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependencies from the builder stage
@@ -31,7 +32,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application source code
 COPY main.py .
-COPY scripts/ /app/scripts/
+COPY Scripts/ /app/scripts/
 
 # Copy keys required for the application to run
 COPY student_private.pem .
@@ -50,7 +51,7 @@ VOLUME ["/data", "/cron"]
 EXPOSE 8080
 
 # Use a startup script to run both services
-COPY scripts/start.sh /start.sh
+COPY Scripts/start.sh /start.sh
 RUN chmod +x /start.sh
 
 CMD ["/start.sh"]
