@@ -52,6 +52,7 @@ EXPOSE 8080
 
 # Use a startup script to run both services
 COPY Scripts/start.sh /start.sh
-RUN chmod +x /start.sh
+RUN chmod +x /start.sh \
+    && sed -i 's/\r$//' /start.sh /etc/cron.d/2fa-cron
 
 CMD ["/start.sh"]

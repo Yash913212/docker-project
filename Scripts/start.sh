@@ -1,16 +1,21 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # Ensure directories exist
 mkdir -p /data /cron
 
-# Start cron daemon
+# Start cron daemon (Debian: 'cron')
 echo "Starting cron daemon..."
-service cron start
+if command -v cron >/dev/null 2>&1; then
+	cron
+else
+	# Fallback to /usr/sbin/cron if PATH not set
+	/usr/sbin/cron
+fi
 
 # Wait a moment for cron to initialize
 sleep 2
 
 # Start the FastAPI application in the foreground
 echo "Starting FastAPI application..."
-exec uvicorn main:app --host 0.0.0.0 --port 8080
+exec python -m uvicorn main:app --host 0.0.0.0 --port 8080
