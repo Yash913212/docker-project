@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: totp-api
 
     ports:
       - "8080:8080"
@@ -18,7 +17,7 @@ services:
       - cron-output:/cron
 
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/docs').read()"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/').read()"]
       interval: 10s
       timeout: 5s
       retries: 5
