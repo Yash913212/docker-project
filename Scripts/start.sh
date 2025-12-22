@@ -13,8 +13,8 @@ else
 	/usr/sbin/cron
 fi
 
-# Wait a moment for cron to initialize
-sleep 2
+# Reduced sleep for faster startup
+sleep 1
 
 # Start the FastAPI application in the foreground
 echo "Starting FastAPI application..."
