@@ -123,10 +123,16 @@ def main():
     # 6. Base64 encode
     encrypted_b64 = base64.b64encode(encrypted_sig).decode("ascii")
 
+    # Also write clean artifacts to files to avoid copy/paste line-wrap issues
+    with open("commit_hash.txt", "w", encoding="utf-8") as ch:
+        ch.write(commit_hash + "\n")
+    with open("encrypted_signature.txt", "w", encoding="utf-8") as es:
+        es.write(encrypted_b64 + "\n")
+
     print("\nEncrypted Signature (base64):")
     print(encrypted_b64)
     print("\n---")
-    print("Copy the Encrypted Signature (single line) above to submit with your repo.")
+    print("Saved commit_hash.txt and encrypted_signature.txt with single-line values for submission.")
 
 
 if __name__ == "__main__":

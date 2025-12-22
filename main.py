@@ -78,6 +78,16 @@ def verify_totp(hex_seed: str, user_code: str) -> bool:
 
 # ========= API ENDPOINTS =========
 
+@app.get("/")
+def root():
+    """Lightweight health check endpoint for external monitors."""
+    return {"status": "ok"}
+
+@app.get("/healthz")
+def healthz():
+    """Kubernetes-style health endpoint."""
+    return {"status": "ok"}
+
 @app.post("/decrypt-seed")
 def decrypt_seed(body: DecryptRequest):
     """
